@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: acb5c73530dec7a43b1e9fbb5ae5f0b3
+timeCreated: 1473773909
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 71830
+  packageName: UMA 2 Free military hats.
+  packageVersion: 0.76
+  assetPath: Assets/UMA/Content/Ruby/Military militia/Male_PBR/Slots/HumanMale_Mill_SeparatedUVs/Mill_Hat_cap/Mill_Hat_cap_Skinned.prefab
+  uploadId: 137615
