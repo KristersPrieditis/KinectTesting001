@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: b7a17e9d65523b5409f06b0f33bf662c
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287098
+  packageName: Chinese Cyborg Warrior Character Free
+  packageVersion: 2.1
+  assetPath: Assets/ChineseCyborgSoldier/Shaders/Eye_Include.hlsl
+  uploadId: 720893

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 41e6f108be1f65a44bc41b2fed5f7f30
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287098
+  packageName: Chinese Cyborg Warrior Character Free
+  packageVersion: 2.1
+  assetPath: Assets/ChineseCyborgSoldier/Scripts/EyeGetMatrix.cs
+  uploadId: 720893

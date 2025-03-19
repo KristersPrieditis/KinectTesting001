@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 70a39430d8cc74d429229703b9bb1e70
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287098
+  packageName: Chinese Cyborg Warrior Character Free
+  packageVersion: 2.1
+  assetPath: Assets/ChineseCyborgSoldier/Shaders/pbrLitInclude.hlsl
+  uploadId: 720893

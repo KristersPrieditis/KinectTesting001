@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using Kinect = Windows.Kinect;
 
@@ -9,7 +8,7 @@ public class BodySourceView : MonoBehaviour
     public GameObject BodySourceManager;
 
     [Header("Skeleton Scaling")]
-    public float skeletonScaleFactor = 1.0f; // Adjustable scale factor for testing
+    public float skeletonScaleFactor = 1.0f; // Adjustable scale factor for skeleton
 
     private Dictionary<ulong, GameObject> _Bodies = new Dictionary<ulong, GameObject>();
     private BodySourceManager _BodyManager;
@@ -48,40 +47,23 @@ public class BodySourceView : MonoBehaviour
 
     void Update()
     {
-        if (BodySourceManager == null)
-        {
-            return;
-        }
-
+        if (BodySourceManager == null) return;
         _BodyManager = BodySourceManager.GetComponent<BodySourceManager>();
-        if (_BodyManager == null)
-        {
-            return;
-        }
+        if (_BodyManager == null) return;
 
         Kinect.Body[] data = _BodyManager.GetData();
-        if (data == null)
-        {
-            return;
-        }
+        if (data == null) return;
 
         List<ulong> trackedIds = new List<ulong>();
         foreach (var body in data)
         {
-            if (body == null)
-            {
-                continue;
-            }
-
-            if (body.IsTracked)
-            {
+            if (body != null && body.IsTracked)
                 trackedIds.Add(body.TrackingId);
-            }
         }
 
         List<ulong> knownIds = new List<ulong>(_Bodies.Keys);
 
-        // First delete untracked bodies
+        // Delete untracked bodies
         foreach (ulong trackingId in knownIds)
         {
             if (!trackedIds.Contains(trackingId))
@@ -93,12 +75,7 @@ public class BodySourceView : MonoBehaviour
 
         foreach (var body in data)
         {
-            if (body == null)
-            {
-                continue;
-            }
-
-            if (body.IsTracked)
+            if (body != null && body.IsTracked)
             {
                 if (!_Bodies.ContainsKey(body.TrackingId))
                 {
@@ -107,11 +84,8 @@ public class BodySourceView : MonoBehaviour
 
                 GameObject skeleton = _Bodies[body.TrackingId];
 
-                // **Scale Skeleton to Match RGB Plane**
-                float skeletonHeight = Mathf.Abs(body.Joints[Kinect.JointType.Head].Position.Y - body.Joints[Kinect.JointType.FootLeft].Position.Y);
-
-                float scaleFactor = skeletonScaleFactor / skeletonHeight; // Scale using the factor
-                skeleton.transform.localScale = Vector3.one * scaleFactor;
+                // **Scale the whole skeleton properly**
+                skeleton.transform.localScale = Vector3.one * skeletonScaleFactor;
 
                 RefreshBodyObject(body, skeleton);
             }
@@ -122,9 +96,10 @@ public class BodySourceView : MonoBehaviour
     {
         GameObject body = new GameObject("Body:" + id);
 
-        for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
+        foreach (Kinect.JointType jt in _BoneMap.Keys)
         {
             GameObject jointObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            jointObj.transform.localScale = Vector3.one * 0.3f; // Default joint size
 
             LineRenderer lr = jointObj.AddComponent<LineRenderer>();
             lr.positionCount = 2;
@@ -132,7 +107,6 @@ public class BodySourceView : MonoBehaviour
             lr.startWidth = 0.05f;
             lr.endWidth = 0.05f;
 
-            jointObj.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
             jointObj.name = jt.ToString();
             jointObj.transform.parent = body.transform;
         }
@@ -142,24 +116,29 @@ public class BodySourceView : MonoBehaviour
 
     private void RefreshBodyObject(Kinect.Body body, GameObject bodyObject)
     {
-        for (Kinect.JointType jt = Kinect.JointType.SpineBase; jt <= Kinect.JointType.ThumbRight; jt++)
+        foreach (var jt in _BoneMap.Keys)
         {
+            if (!body.Joints.ContainsKey(jt)) continue;
+
             Kinect.Joint sourceJoint = body.Joints[jt];
             Kinect.Joint? targetJoint = null;
 
             if (_BoneMap.ContainsKey(jt))
-            {
                 targetJoint = body.Joints[_BoneMap[jt]];
-            }
 
             Transform jointObj = bodyObject.transform.Find(jt.ToString());
-            jointObj.localPosition = GetVector3FromJoint(sourceJoint);
+            if (jointObj == null) continue;
+
+            // **Apply the scale factor to joint positions**
+            Vector3 scaledPosition = GetVector3FromJoint(sourceJoint) * skeletonScaleFactor;
+            jointObj.localPosition = scaledPosition;
 
             LineRenderer lr = jointObj.GetComponent<LineRenderer>();
             if (targetJoint.HasValue)
             {
-                lr.SetPosition(0, jointObj.localPosition);
-                lr.SetPosition(1, GetVector3FromJoint(targetJoint.Value));
+                Vector3 scaledTargetPosition = GetVector3FromJoint(targetJoint.Value) * skeletonScaleFactor;
+                lr.SetPosition(0, scaledPosition);
+                lr.SetPosition(1, scaledTargetPosition);
                 lr.startColor = GetColorForState(sourceJoint.TrackingState);
                 lr.endColor = GetColorForState(targetJoint.Value.TrackingState);
             }
@@ -185,7 +164,6 @@ public class BodySourceView : MonoBehaviour
 
     private static Vector3 GetVector3FromJoint(Kinect.Joint joint)
     {
-        return new Vector3(joint.Position.X * 10, joint.Position.Y * 10, joint.Position.Z * 10);
+        return new Vector3(joint.Position.X, joint.Position.Y, joint.Position.Z);
     }
 }
-

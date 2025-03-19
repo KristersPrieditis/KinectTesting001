@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 25c15371c4ff28441a9f3e72001aab1e
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 287098
+  packageName: Chinese Cyborg Warrior Character Free
+  packageVersion: 2.1
+  assetPath: Assets/ChineseCyborgSoldier/Shaders/pbrPosterized.shader
+  uploadId: 720893

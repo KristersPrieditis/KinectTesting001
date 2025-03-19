@@ -9,6 +9,9 @@ public class BodySourceKristers : MonoBehaviour
     public GameObject BodySourceManager;
     public GameObject rgbPlane; // The plane showing the RGB feed
 
+    [Header("Skeleton Scaling")]
+    public float skeletonScaleFactor = 1.0f; // Adjustable in Inspector
+
     private Dictionary<ulong, GameObject> _Bodies = new Dictionary<ulong, GameObject>();
     private BodySourceManager _BodyManager;
 
@@ -66,12 +69,7 @@ public class BodySourceKristers : MonoBehaviour
         List<ulong> trackedIds = new List<ulong>();
         foreach (var body in data)
         {
-            if (body == null)
-            {
-                continue;
-            }
-
-            if (body.IsTracked)
+            if (body != null && body.IsTracked)
             {
                 trackedIds.Add(body.TrackingId);
             }
@@ -91,12 +89,7 @@ public class BodySourceKristers : MonoBehaviour
 
         foreach (var body in data)
         {
-            if (body == null)
-            {
-                continue;
-            }
-
-            if (body.IsTracked)
+            if (body != null && body.IsTracked)
             {
                 if (!_Bodies.ContainsKey(body.TrackingId))
                 {
@@ -113,16 +106,20 @@ public class BodySourceKristers : MonoBehaviour
         GameObject body = new GameObject("Body:" + id);
         body.transform.SetParent(rgbPlane.transform, true); // Attach skeleton to RGB plane
 
+        // Apply initial scaling to the entire skeleton
+        body.transform.localScale = Vector3.one * skeletonScaleFactor;
+
         foreach (Kinect.JointType jt in System.Enum.GetValues(typeof(Kinect.JointType)))
         {
             GameObject jointObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             jointObj.transform.parent = body.transform;
+            jointObj.transform.localScale = Vector3.one * 0.1f * skeletonScaleFactor; // Scale joints
 
             LineRenderer lr = jointObj.AddComponent<LineRenderer>();
             lr.positionCount = 2;
             lr.material = BoneMaterial;
-            lr.startWidth = 0.02f;
-            lr.endWidth = 0.02f;
+            lr.startWidth = 0.02f * skeletonScaleFactor;
+            lr.endWidth = 0.02f * skeletonScaleFactor;
         }
 
         return body;
