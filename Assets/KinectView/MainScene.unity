@@ -422,8 +422,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bodySourceManager: {fileID: 1698423884}
-  outfitPrefab: {fileID: 9188995467431367570, guid: c8204bbf5f83cc64baed17447f420a9f, type: 3}
-  modelScaleFactor: 0.9
+  outfitPrefab: {fileID: 6856782959431203822, guid: df25f38361a135b47b8dbceab527c8ef, type: 3}
+  modelScaleFactor: 10
 --- !u!4 &635954461
 Transform:
   m_ObjectHideFlags: 0
@@ -1478,8 +1478,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bodySourceManager: {fileID: 1698423884}
-  jacketPrefab: {fileID: 2443717941946795356, guid: c16ee8eac467db848b2f67381202b237, type: 3}
-  jacketHeightOffset: -12
+  jacketPrefab: {fileID: 7542826046359347956, guid: 7d4eccc33ce57ba469b3187ab7f68513, type: 3}
+  modelScaleFactor: 40
+  jacketRotationOffset: {x: -90, y: 180, z: 0}
+  zOffsetFromCamera: 75
+  boneLengthMultiplier: 2
 --- !u!4 &1849572115
 Transform:
   m_ObjectHideFlags: 0
