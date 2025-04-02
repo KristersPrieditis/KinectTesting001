@@ -53,14 +53,18 @@ public class HatAttachment : MonoBehaviour
                     {
                         GameObject hat = userHats[userId];
 
-                        // **Scale dynamically based on the user’s body size BEFORE attaching**
+                        // Scale dynamically based on the user’s body size
                         float scaleMultiplier = GetScaleMultiplier(body);
                         hat.transform.localScale = Vector3.one * scaleMultiplier;
 
-                        // **Attach to head joint & adjust position**
+                        // Attach to head joint
                         hat.transform.SetParent(headTransform);
-                        hat.transform.localPosition = Vector3.up * (scaleMultiplier * -2f); // Adjust height based on scale
-                        hat.transform.localRotation = Quaternion.identity;
+
+                        // Adjust position slightly above the head
+                        hat.transform.localPosition = Vector3.up * (scaleMultiplier * 0.001f); // small offset now
+
+                        // Apply 180-degree rotation to face forward
+                        hat.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
                     }
                 }
             }
@@ -83,22 +87,17 @@ public class HatAttachment : MonoBehaviour
 
     private float GetScaleMultiplier(Kinect.Body body)
     {
-        // Get the positions of the shoulders
         Kinect.Joint leftShoulder = body.Joints[Kinect.JointType.ShoulderLeft];
         Kinect.Joint rightShoulder = body.Joints[Kinect.JointType.ShoulderRight];
         Kinect.Joint head = body.Joints[Kinect.JointType.Head];
 
-        // **Calculate shoulder width**
         float shoulderWidth = Mathf.Abs(leftShoulder.Position.X - rightShoulder.Position.X);
+        float userDepth = head.Position.Z;
 
-        // **Get the depth (distance from the camera)**
-        float userDepth = head.Position.Z; // Z = distance from the Kinect
+        float baseSize = 1.5f;
+        float depthFactor = Mathf.Clamp(2.0f - userDepth, 0.5f, 2.5f);
+        float scaleFactor = (shoulderWidth * 200f) * depthFactor;
 
-        // **Adjust the hat scale dynamically**
-        float baseSize = 1.5f; // Base size of the hat
-        float depthFactor = Mathf.Clamp(2.0f - userDepth, 0.5f, 2.5f); // Scale based on distance
-        float scaleFactor = (shoulderWidth * 150f) * depthFactor;
-
-        return Mathf.Clamp(scaleFactor, 10f, 150f); // Keep within reasonable limits
+        return Mathf.Clamp(scaleFactor, 10f, 150f);
     }
 }
