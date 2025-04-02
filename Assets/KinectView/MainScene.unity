@@ -1014,7 +1014,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bodySourceManager: {fileID: 1698423884}
-  vestPrefab: {fileID: 654531317557168379, guid: 340a1ea411fc6174e956178ed3e91759, type: 3}
+  vestPrefab: {fileID: 3701734006360033555, guid: bc33753f1b8a48d4f91284a889bcf138, type: 3}
   vestScaleOffset: 1
 --- !u!1 &1464340100
 GameObject:
