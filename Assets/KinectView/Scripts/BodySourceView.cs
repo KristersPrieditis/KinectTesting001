@@ -111,6 +111,8 @@ public class BodySourceView : MonoBehaviour
             jointObj.transform.parent = body.transform;
         }
 
+        body.AddComponent<JointTrackerInjector>();
+
         return body;
     }
 

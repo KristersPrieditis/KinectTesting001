@@ -4,43 +4,39 @@ using Kinect = Windows.Kinect;
 
 public class KinectOutfitMapper : MonoBehaviour
 {
-    public GameObject bodySourceManager;   // Kinect body tracking manager
-    public GameObject outfitPrefab;        // Your new rigged character
-    public float modelScaleFactor = 1.0f;    // Manual scaling adjustment
+    public GameObject bodySourceManager;  // Kinect body tracking manager
+    public GameObject outfitPrefab;       // The Mixamo rigged outfit
+
+    // Inspector field to move the entire model along the Z axis.
+    public float zOffset = 0f;
 
     private BodySourceManager _bodyManager;
     private GameObject activeOutfit;
     private Kinect.Body trackedBody;
 
-    // Map Kinect joints to your model’s bone names (adjust these to match your rig exactly)
-    private Dictionary<Kinect.JointType, string> bodyBoneMap = new Dictionary<Kinect.JointType, string>()
+    private Dictionary<Kinect.JointType, string> mixamoBoneMap = new Dictionary<Kinect.JointType, string>()
     {
-        // Torso
-        { Kinect.JointType.SpineBase,      "Hip" },
-        { Kinect.JointType.SpineMid,       "Spine" },
-        { Kinect.JointType.SpineShoulder,  "Neck" },
-        { Kinect.JointType.Neck,           "Neck" },
-        { Kinect.JointType.Head,           "Head" },
+        { Kinect.JointType.SpineBase,      "mixamorig:Hips" },
+        { Kinect.JointType.SpineMid,       "mixamorig:Spine" },
+        { Kinect.JointType.SpineShoulder,  "mixamorig:Spine1" },
+        { Kinect.JointType.Neck,           "mixamorig:Neck" },
+        { Kinect.JointType.Head,           "mixamorig:Head" },
 
-        // Left Arm
-        { Kinect.JointType.ShoulderLeft,   "LeftShoulder" },
-        { Kinect.JointType.ElbowLeft,      "LeftUpperArm" },
-        { Kinect.JointType.WristLeft,      "LeftHand" },
+        { Kinect.JointType.ShoulderLeft,   "mixamorig:LeftShoulder" },
+        { Kinect.JointType.ElbowLeft,      "mixamorig:LeftArm" },
+        { Kinect.JointType.WristLeft,      "mixamorig:LeftHand" },
 
-        // Right Arm
-        { Kinect.JointType.ShoulderRight,  "RightShoulder" },
-        { Kinect.JointType.ElbowRight,     "RightUpperArm" },
-        { Kinect.JointType.WristRight,     "RightHand" },
+        { Kinect.JointType.ShoulderRight,  "mixamorig:RightShoulder" },
+        { Kinect.JointType.ElbowRight,     "mixamorig:RightArm" },
+        { Kinect.JointType.WristRight,     "mixamorig:RightHand" },
 
-        // Left Leg
-        { Kinect.JointType.HipLeft,        "LeftUpperLeg" },
-        { Kinect.JointType.KneeLeft,       "LeftLowerLeg" },
-        { Kinect.JointType.AnkleLeft,      "LeftFoot" },
+        { Kinect.JointType.HipLeft,        "mixamorig:LeftUpLeg" },
+        { Kinect.JointType.KneeLeft,       "mixamorig:LeftLeg" },
+        { Kinect.JointType.AnkleLeft,      "mixamorig:LeftFoot" },
 
-        // Right Leg
-        { Kinect.JointType.HipRight,       "RightUpperLeg" },
-        { Kinect.JointType.KneeRight,      "RightLowerLeg" },
-        { Kinect.JointType.AnkleRight,     "RightFoot" }
+        { Kinect.JointType.HipRight,       "mixamorig:RightUpLeg" },
+        { Kinect.JointType.KneeRight,      "mixamorig:RightLeg" },
+        { Kinect.JointType.AnkleRight,     "mixamorig:RightFoot" }
     };
 
     private Dictionary<Kinect.JointType, Transform> outfitBones = new Dictionary<Kinect.JointType, Transform>();
@@ -48,9 +44,7 @@ public class KinectOutfitMapper : MonoBehaviour
     void Start()
     {
         if (bodySourceManager != null)
-        {
             _bodyManager = bodySourceManager.GetComponent<BodySourceManager>();
-        }
     }
 
     void Update()
@@ -62,7 +56,6 @@ public class KinectOutfitMapper : MonoBehaviour
         if (data == null)
             return;
 
-        // Find the first tracked body
         trackedBody = null;
         foreach (var body in data)
         {
@@ -79,15 +72,12 @@ public class KinectOutfitMapper : MonoBehaviour
             return;
         }
 
-        // Spawn the outfit if not already spawned
         if (activeOutfit == null)
         {
             SpawnOutfit();
         }
 
-        // Update the root transform (position) and then update each bone’s rotation
         UpdateOutfitTransform();
-        UpdateBoneRotations();
     }
 
     void SpawnOutfit()
@@ -95,7 +85,7 @@ public class KinectOutfitMapper : MonoBehaviour
         activeOutfit = Instantiate(outfitPrefab);
         activeOutfit.transform.position = Vector3.zero;
         activeOutfit.transform.rotation = Quaternion.identity;
-        activeOutfit.transform.localScale = Vector3.one * modelScaleFactor;
+        activeOutfit.transform.localScale = Vector3.one; // Forcing a reset scale
 
         InitializeOutfitBones();
         Debug.Log("[KinectOutfitMapper] Outfit spawned!");
@@ -105,18 +95,17 @@ public class KinectOutfitMapper : MonoBehaviour
     {
         outfitBones.Clear();
 
-        // Adjust this if your rig’s Armature is structured differently.
-        Transform armature = activeOutfit.transform.Find("Armature");
-        if (armature == null)
+        // Use "mixamorig:Hips" as the root instead of "Armature".
+        Transform hips = activeOutfit.transform.Find("mixamorig:Hips");
+        if (hips == null)
         {
-            Debug.LogError("[KinectOutfitMapper] ERROR: 'Armature' not found in the outfit!");
+            Debug.LogError("[KinectOutfitMapper] ERROR: 'mixamorig:Hips' not found in the outfit rig!");
             return;
         }
 
-        // Map each Kinect joint to its corresponding bone in the rig
-        foreach (var pair in bodyBoneMap)
+        foreach (var pair in mixamoBoneMap)
         {
-            Transform boneTransform = FindBoneRecursive(armature, pair.Value);
+            Transform boneTransform = FindBoneRecursive(hips, pair.Value);
             if (boneTransform != null)
             {
                 outfitBones[pair.Key] = boneTransform;
@@ -124,18 +113,18 @@ public class KinectOutfitMapper : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning($"[KinectOutfitMapper] WARNING: Bone '{pair.Value}' not found.");
+                Debug.LogWarning($"[KinectOutfitMapper] WARNING: Bone '{pair.Value}' not found in Mixamo rig.");
             }
         }
     }
 
     private Transform FindBoneRecursive(Transform parent, string boneName)
     {
+        if (parent.name == boneName)
+            return parent;
+
         foreach (Transform child in parent)
         {
-            if (child.name == boneName)
-                return child;
-
             Transform found = FindBoneRecursive(child, boneName);
             if (found != null)
                 return found;
@@ -145,62 +134,27 @@ public class KinectOutfitMapper : MonoBehaviour
 
     void UpdateOutfitTransform()
     {
-        if (trackedBody == null)
-            return;
-
-        // Position the entire outfit at the user's SpineBase
+        // Set Root Position: Use the Kinect SpineBase joint and apply the zOffset.
         Vector3 rootPosition = GetVector3FromJoint(trackedBody.Joints[Kinect.JointType.SpineBase]);
         activeOutfit.transform.position = rootPosition;
 
-        // Ensure the outfit maintains the correct scale
-        activeOutfit.transform.localScale = Vector3.one * modelScaleFactor;
-    }
-
-    // Update each bone’s rotation using Kinect’s JointOrientation data
-    void UpdateBoneRotations()
-    {
-        if (trackedBody == null)
-            return;
-
+        // Update each bone's position to mimic the Kinect skeleton.
         foreach (var pair in outfitBones)
         {
-            Kinect.JointType jointType = pair.Key;
+            Kinect.JointType kinectJoint = pair.Key;
             Transform boneTransform = pair.Value;
             if (boneTransform == null)
                 continue;
 
-            // 1) Retrieve the Kinect joint orientation
-            Kinect.JointOrientation jointOrientation = trackedBody.JointOrientations[jointType];
-
-            // 2) Convert Kinect’s Vector4 (quaternion) into a Unity Quaternion
-            Quaternion kinectRotation = new Quaternion(
-                jointOrientation.Orientation.X,
-                jointOrientation.Orientation.Y,
-                jointOrientation.Orientation.Z,
-                jointOrientation.Orientation.W
-            );
-
-            // 3) Adjust for coordinate system differences between Kinect and Unity.
-            //    The following example flips the X and Z axes. Adjust these as necessary.
-            Quaternion unityRotation = new Quaternion(
-                -kinectRotation.x, // Flip X
-                 kinectRotation.y,
-                -kinectRotation.z, // Flip Z
-                 kinectRotation.w
-            );
-
-            // 4) Optionally, apply a rest pose offset here if needed (e.g., offset * unityRotation)
-            boneTransform.localRotation = unityRotation;
+            Vector3 targetPosition = GetVector3FromJoint(trackedBody.Joints[kinectJoint]);
+            boneTransform.position = targetPosition;
         }
     }
 
     private Vector3 GetVector3FromJoint(Kinect.Joint joint)
     {
-        // Convert Kinect joint position to a more Unity-friendly scale.
-        return new Vector3(
-            joint.Position.X * 10f,
-            joint.Position.Y * 10f,
-            joint.Position.Z * 10f
-        );
+        return new Vector3(joint.Position.X * 10f,
+                           joint.Position.Y * 10f,
+                           (joint.Position.Z * 10f) + zOffset);
     }
 }
