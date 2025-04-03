@@ -4,12 +4,15 @@ using Kinect = Windows.Kinect;
 
 public class VestAttachment : MonoBehaviour
 {
-    public GameObject bodySourceManager;  // Kinect body tracking manager
-    public GameObject vestPrefab;         // The 3D vest prefab to spawn
-    public float vestScaleOffset = 1f;    // Manual scaling factor for fine-tuning size
+    public GameObject bodySourceManager;              // Kinect body tracking manager
+    public GameObject[] vestPrefabs;                  // Array of 3D vest prefabs to choose from randomly
+
+    public float vestScaleOffset = 1f;                // Manual scaling factor for fine-tuning size
+    public Vector3 vestPositionOffset = new Vector3(0f, -0.1f, 0f); // Manual offset
+    public Vector3 vestRotationOffset = new Vector3(0f, 180f, 0f);  // Manual rotation offset (X, Y, Z)
 
     private BodySourceManager _bodyManager;
-    private Dictionary<ulong, GameObject> userVests = new Dictionary<ulong, GameObject>(); // Tracks vests per user
+    private Dictionary<ulong, GameObject> userVests = new Dictionary<ulong, GameObject>(); // Tracks anchors per user
 
     void Start()
     {
@@ -19,7 +22,7 @@ public class VestAttachment : MonoBehaviour
 
     void Update()
     {
-        if (_bodyManager == null || vestPrefab == null)
+        if (_bodyManager == null || vestPrefabs == null || vestPrefabs.Length == 0)
             return;
 
         Kinect.Body[] data = _bodyManager.GetData();
@@ -35,15 +38,19 @@ public class VestAttachment : MonoBehaviour
                 ulong userId = body.TrackingId;
                 activeUserIds.Add(userId);
 
-                // If user doesn't have a vest, create one
+                // If user doesn't have a vest anchor, create one
                 if (!userVests.ContainsKey(userId))
                 {
-                    GameObject newVest = Instantiate(vestPrefab);
-                    userVests[userId] = newVest;
-                }
+                    GameObject vestAnchor = new GameObject("VestAnchor_" + userId);
 
-                // Attach vest to the SpineShoulder joint (chest area)
-                Kinect.Joint chestJoint = body.Joints[Kinect.JointType.SpineShoulder];
+                    //  Randomly pick a vest prefab
+                    GameObject selectedVest = vestPrefabs[Random.Range(0, vestPrefabs.Length)];
+
+                    GameObject vestModel = Instantiate(selectedVest, vestAnchor.transform);
+                    vestModel.name = "VestModel";
+
+                    userVests[userId] = vestAnchor;
+                }
 
                 // Find the skeleton GameObject
                 GameObject skeleton = GameObject.Find("Body:" + userId);
@@ -52,23 +59,30 @@ public class VestAttachment : MonoBehaviour
                     Transform chestTransform = skeleton.transform.Find("SpineShoulder");
                     if (chestTransform != null)
                     {
-                        GameObject vest = userVests[userId];
+                        GameObject vestAnchor = userVests[userId];
+                        Transform vestModel = vestAnchor.transform.Find("VestModel");
 
-                        // Dynamic scaling based on user size
+                        // Dynamic scaling based on torso height
                         float scaleMultiplier = GetScaleMultiplier(body);
-
-                        // Apply extra public scale offset
                         float finalScale = scaleMultiplier * vestScaleOffset;
-                        vest.transform.localScale = Vector3.one * finalScale;
 
-                        // Attach to chest joint
-                        vest.transform.SetParent(chestTransform);
+                        // Parent the anchor to the chest joint
+                        vestAnchor.transform.SetParent(chestTransform);
 
-                        // Position the vest slightly forward/down depending on fit
-                        vest.transform.localPosition = new Vector3(0f, -finalScale * 0.1f, 0f);
+                        // Apply position and rotation offset
+                        vestAnchor.transform.localPosition = vestPositionOffset;
 
-                        // Apply default rotation facing forward
-                        vest.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                        Kinect.Vector4 orientation = body.JointOrientations[Kinect.JointType.SpineShoulder].Orientation;
+                        Quaternion jointRotation = new Quaternion(orientation.X, orientation.Y, orientation.Z, orientation.W);
+
+                        Quaternion manualOffset = Quaternion.Euler(vestRotationOffset);
+                        vestAnchor.transform.localRotation = jointRotation * manualOffset;
+
+                        // Scale the model only
+                        if (vestModel != null)
+                        {
+                            vestModel.localScale = Vector3.one * finalScale;
+                        }
                     }
                 }
             }
@@ -91,16 +105,15 @@ public class VestAttachment : MonoBehaviour
 
     private float GetScaleMultiplier(Kinect.Body body)
     {
-        Kinect.Joint leftShoulder = body.Joints[Kinect.JointType.ShoulderLeft];
-        Kinect.Joint rightShoulder = body.Joints[Kinect.JointType.ShoulderRight];
-        Kinect.Joint spine = body.Joints[Kinect.JointType.SpineMid];
+        Kinect.Joint neck = body.Joints[Kinect.JointType.Neck];
+        Kinect.Joint spineBase = body.Joints[Kinect.JointType.SpineBase];
 
-        float shoulderWidth = Mathf.Abs(leftShoulder.Position.X - rightShoulder.Position.X);
-        float userDepth = spine.Position.Z;
+        float torsoHeight = Mathf.Abs(neck.Position.Y - spineBase.Position.Y);
+        float baseTorsoHeight = 0.5f; // Reference torso height for an average adult
 
-        float depthFactor = Mathf.Clamp(2.0f - userDepth, 0.5f, 2.5f);
-        float scaleFactor = (shoulderWidth * 200f) * depthFactor;
+        float scaleFactor = (torsoHeight / baseTorsoHeight) * 100f;
 
-        return Mathf.Clamp(scaleFactor, 10f, 150f);
+        return Mathf.Clamp(scaleFactor, 50f, 150f);
     }
 }
+

@@ -7,6 +7,10 @@ public class HatAttachment : MonoBehaviour
     public GameObject bodySourceManager;  // Kinect body tracking manager
     public GameObject hatPrefab;          // The 3D hat prefab to spawn
 
+    public float hatScaleOffset = 1f;           // Manual scale multiplier
+    public Vector3 hatPositionOffset = new Vector3(0f, 0.1f, 0f); // Slightly above the head
+    public float hatRotationY = 180f;           // Manual Y-axis rotation offset
+
     private BodySourceManager _bodyManager;
     private Dictionary<ulong, GameObject> userHats = new Dictionary<ulong, GameObject>(); // Tracks hats per user
 
@@ -34,37 +38,49 @@ public class HatAttachment : MonoBehaviour
                 ulong userId = body.TrackingId;
                 activeUserIds.Add(userId);
 
-                // If user doesn't have a hat, create one
+                // If user doesn't have a hat anchor, create one
                 if (!userHats.ContainsKey(userId))
                 {
-                    GameObject newHat = Instantiate(hatPrefab);
-                    userHats[userId] = newHat;
+                    GameObject hatAnchor = new GameObject("HatAnchor_" + userId);
+                    GameObject hatModel = Instantiate(hatPrefab, hatAnchor.transform);
+                    hatModel.name = "HatModel";
+
+                    userHats[userId] = hatAnchor;
                 }
 
                 // Attach hat to the Head joint
-                Kinect.Joint headJoint = body.Joints[Kinect.JointType.Head];
-
-                // Find the skeleton GameObject
                 GameObject skeleton = GameObject.Find("Body:" + userId);
                 if (skeleton != null)
                 {
                     Transform headTransform = skeleton.transform.Find("Head");
                     if (headTransform != null)
                     {
-                        GameObject hat = userHats[userId];
+                        GameObject hatAnchor = userHats[userId];
+                        Transform hatModel = hatAnchor.transform.Find("HatModel");
 
-                        // Scale dynamically based on the user’s body size
+                        // Dynamic scaling based on torso height
                         float scaleMultiplier = GetScaleMultiplier(body);
-                        hat.transform.localScale = Vector3.one * scaleMultiplier;
+                        float finalScale = scaleMultiplier * hatScaleOffset;
 
-                        // Attach to head joint
-                        hat.transform.SetParent(headTransform);
+                        // Parent anchor to head
+                        hatAnchor.transform.SetParent(headTransform);
 
-                        // Adjust position slightly above the head
-                        hat.transform.localPosition = Vector3.up * (scaleMultiplier * 0.001f); // small offset now
+                        // Position and orientation
+                        hatAnchor.transform.localPosition = hatPositionOffset;
 
-                        // Apply 180-degree rotation to face forward
-                        hat.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                        // Apply Kinect joint rotation
+                        Kinect.Vector4 orientation = body.JointOrientations[Kinect.JointType.Head].Orientation;
+                        Quaternion jointRotation = new Quaternion(orientation.X, orientation.Y, orientation.Z, orientation.W);
+
+                        // Apply manual offset if Kinect head faces backward
+                        Quaternion manualOffset = Quaternion.Euler(0f, hatRotationY, 0f);
+                        hatAnchor.transform.localRotation = jointRotation * manualOffset;
+
+                        // Scale model
+                        if (hatModel != null)
+                        {
+                            hatModel.localScale = Vector3.one * finalScale;
+                        }
                     }
                 }
             }
@@ -85,19 +101,17 @@ public class HatAttachment : MonoBehaviour
         }
     }
 
+    // Torso-based scale estimation for more consistent sizing
     private float GetScaleMultiplier(Kinect.Body body)
     {
-        Kinect.Joint leftShoulder = body.Joints[Kinect.JointType.ShoulderLeft];
-        Kinect.Joint rightShoulder = body.Joints[Kinect.JointType.ShoulderRight];
-        Kinect.Joint head = body.Joints[Kinect.JointType.Head];
+        Kinect.Joint neck = body.Joints[Kinect.JointType.Neck];
+        Kinect.Joint spineBase = body.Joints[Kinect.JointType.SpineBase];
 
-        float shoulderWidth = Mathf.Abs(leftShoulder.Position.X - rightShoulder.Position.X);
-        float userDepth = head.Position.Z;
+        float torsoHeight = Mathf.Abs(neck.Position.Y - spineBase.Position.Y);
+        float baseTorsoHeight = 0.5f; // Reference torso height for an average adult
 
-        float baseSize = 1.5f;
-        float depthFactor = Mathf.Clamp(2.0f - userDepth, 0.5f, 2.5f);
-        float scaleFactor = (shoulderWidth * 200f) * depthFactor;
+        float scaleFactor = (torsoHeight / baseTorsoHeight) * 100f;
 
-        return Mathf.Clamp(scaleFactor, 10f, 150f);
+        return Mathf.Clamp(scaleFactor, 50f, 150f);
     }
 }
