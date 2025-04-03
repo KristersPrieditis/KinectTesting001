@@ -126,6 +126,13 @@ public class BodySourceView : MonoBehaviour
         {
             GameObject jointObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
+            // Only disable the MeshRenderer
+            MeshRenderer meshRenderer = jointObj.GetComponent<MeshRenderer>();
+            if (meshRenderer != null)
+            {
+                meshRenderer.enabled = false;
+            }
+
             LineRenderer lr = jointObj.AddComponent<LineRenderer>();
             lr.positionCount = 2;
             lr.material = BoneMaterial;

@@ -164,7 +164,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8821130411451d343a1488e2a9db134e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BoneMaterial: {fileID: 2100000, guid: f2ea145c63353784985576f08398a815, type: 2}
+  BoneMaterial: {fileID: 2100000, guid: 78c6689586a73a34eb1758cdb5e22a2e, type: 2}
   BodySourceManager: {fileID: 1698423884}
   skeletonScaleFactor: 6.93
 --- !u!1 &252019523
@@ -1118,7 +1118,6 @@ MonoBehaviour:
   bodySourceManager: {fileID: 1698423884}
   vestPrefabs:
   - {fileID: 7655203056429597813, guid: df21098d71ca477458cccf5d2bc4fb0a, type: 3}
-  - {fileID: 0}
   vestScaleOffset: 39.6
   vestPositionOffset: {x: 0, y: -16.5, z: 0}
   vestRotationOffset: {x: 0, y: 12.1, z: 6.72}
