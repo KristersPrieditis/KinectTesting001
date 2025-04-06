@@ -4,12 +4,12 @@ using Kinect = Windows.Kinect;
 
 public class HatAttachment : MonoBehaviour
 {
-    public GameObject bodySourceManager;  // Kinect body tracking manager
-    public GameObject hatPrefab;          // The 3D hat prefab to spawn
+    public GameObject bodySourceManager;                  // Kinect body tracking manager
+    public GameObject[] hatPrefabs;                       // Array of 3D hat prefabs to choose from
 
-    public float hatScaleOffset = 1f;           // Manual scale multiplier
+    public float hatScaleOffset = 1f;                     // Manual scale multiplier
     public Vector3 hatPositionOffset = new Vector3(0f, 0.1f, 0f); // Slightly above the head
-    public float hatRotationY = 180f;           // Manual Y-axis rotation offset
+    public float hatRotationY = 180f;                     // Manual Y-axis rotation offset
 
     private BodySourceManager _bodyManager;
     private Dictionary<ulong, GameObject> userHats = new Dictionary<ulong, GameObject>(); // Tracks hats per user
@@ -22,7 +22,7 @@ public class HatAttachment : MonoBehaviour
 
     void Update()
     {
-        if (_bodyManager == null || hatPrefab == null)
+        if (_bodyManager == null || hatPrefabs == null || hatPrefabs.Length == 0)
             return;
 
         Kinect.Body[] data = _bodyManager.GetData();
@@ -42,7 +42,10 @@ public class HatAttachment : MonoBehaviour
                 if (!userHats.ContainsKey(userId))
                 {
                     GameObject hatAnchor = new GameObject("HatAnchor_" + userId);
-                    GameObject hatModel = Instantiate(hatPrefab, hatAnchor.transform);
+
+                    //  Randomly select a hat
+                    GameObject selectedHat = hatPrefabs[Random.Range(0, hatPrefabs.Length)];
+                    GameObject hatModel = Instantiate(selectedHat, hatAnchor.transform);
                     hatModel.name = "HatModel";
 
                     userHats[userId] = hatAnchor;
@@ -58,7 +61,7 @@ public class HatAttachment : MonoBehaviour
                         GameObject hatAnchor = userHats[userId];
                         Transform hatModel = hatAnchor.transform.Find("HatModel");
 
-                        // Dynamic scaling based on torso height
+                        //  Dynamic scaling based on torso height
                         float scaleMultiplier = GetScaleMultiplier(body);
                         float finalScale = scaleMultiplier * hatScaleOffset;
 
@@ -68,15 +71,12 @@ public class HatAttachment : MonoBehaviour
                         // Position and orientation
                         hatAnchor.transform.localPosition = hatPositionOffset;
 
-                        // Apply Kinect joint rotation
                         Kinect.Vector4 orientation = body.JointOrientations[Kinect.JointType.Head].Orientation;
                         Quaternion jointRotation = new Quaternion(orientation.X, orientation.Y, orientation.Z, orientation.W);
-
-                        // Apply manual offset if Kinect head faces backward
                         Quaternion manualOffset = Quaternion.Euler(0f, hatRotationY, 0f);
                         hatAnchor.transform.localRotation = jointRotation * manualOffset;
 
-                        // Scale model
+                        // Scale model only
                         if (hatModel != null)
                         {
                             hatModel.localScale = Vector3.one * finalScale;
@@ -101,17 +101,17 @@ public class HatAttachment : MonoBehaviour
         }
     }
 
-    // Torso-based scale estimation for more consistent sizing
+    //  Eased torso-based scale (same as vest)
     private float GetScaleMultiplier(Kinect.Body body)
     {
         Kinect.Joint neck = body.Joints[Kinect.JointType.Neck];
         Kinect.Joint spineBase = body.Joints[Kinect.JointType.SpineBase];
 
         float torsoHeight = Mathf.Abs(neck.Position.Y - spineBase.Position.Y);
-        float baseTorsoHeight = 0.5f; // Reference torso height for an average adult
+        float baseTorsoHeight = 0.5f; // Average adult torso height in meters
 
-        float scaleFactor = (torsoHeight / baseTorsoHeight) * 100f;
-
-        return Mathf.Clamp(scaleFactor, 50f, 150f);
+        float rawScale = torsoHeight / baseTorsoHeight;
+        float easedScale = Mathf.Pow(rawScale, 0.5f); // square root easing
+        return Mathf.Clamp(easedScale, 0.7f, 1.3f);
     }
 }
